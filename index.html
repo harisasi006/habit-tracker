@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f172a">
+    <title>Strive - Daily Habit Tracker</title>
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="index.css">
+</head>
+<body class="theme-midnight">
+    <!-- Canvas for Confetti Explosion -->
+    <canvas id="confettiCanvas"></canvas>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="header-top">
+                <div class="user-greeting">
+                    <p class="date-today" id="currentDate">Thursday, July 9</p>
+                    <h1>Hello, Striver!</h1>
+                </div>
+                <div class="header-actions">
+                    <!-- Theme Toggle Button -->
+                    <button class="action-icon-btn" id="themeToggleBtn" title="Switch Theme">
+                        <i class="fa-solid fa-palette"></i>
+                    </button>
+                    <!-- Analytics Toggle Button -->
+                    <button class="action-icon-btn" id="statsToggleBtn" title="Show Statistics">
+                        <i class="fa-solid fa-chart-simple"></i>
+                    </button>
+                    <!-- Streak Badge -->
+                    <div class="streak-badge">
+                        <i class="fa-solid fa-fire glow-flame"></i>
+                        <span id="streakCount">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Progress Card -->
+            <div class="progress-card">
+                <div class="progress-info">
+                    <h2>Today's Progress</h2>
+                    <p id="progressSubtitle">No habits set for today yet.</p>
+                    <div class="weekly-history" id="weeklyHistory">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+                <div class="progress-ring-container">
+                    <svg class="progress-ring" width="100" height="100">
+                        <circle class="progress-ring-circle-bg" stroke="#1e293b" stroke-width="8" fill="transparent" r="42" cx="50" cy="50"/>
+                        <circle class="progress-ring-circle" id="progressCircle" stroke="url(#progressGradient)" stroke-width="8" fill="transparent" r="42" cx="50" cy="50"/>
+                        <defs>
+                            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop id="gradStop1" offset="0%" stop-color="#a855f7" />
+                                <stop id="gradStop2" offset="100%" stop-color="#06b6d4" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span class="progress-percentage" id="progressPercentage">0%</span>
+                </div>
+            </div>
+
+            <!-- Expandable Analytics Dashboard -->
+            <div class="analytics-panel" id="analyticsPanel">
+                <div class="analytics-card">
+                    <h3>Performance Analytics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <span class="stat-val" id="statCompletions">0</span>
+                            <span class="stat-label">Total Done</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-val" id="statBestStreak">0</span>
+                            <span class="stat-label">Best Streak</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-val" id="statAvgRate">0%</span>
+                            <span class="stat-label">Success Rate</span>
+                        </div>
+                    </div>
+                    <div class="habit-breakdown" id="habitBreakdown">
+                        <!-- Filled dynamically by JS -->
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <div class="section-title">
+                <h2>My Habits</h2>
+                <span class="filter-count" id="habitCount">0 active</span>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon"><i class="fa-regular fa-calendar-check"></i></div>
+                <h3>Start your journey</h3>
+                <p>Add your first habit using the button below to start tracking your daily progress.</p>
+            </div>
+
+            <!-- Habit List -->
+            <div class="habit-list" id="habitList">
+                <!-- Dynamically filled by JS -->
+            </div>
+        </main>
+
+        <!-- Floating Action Button -->
+        <button class="fab" id="openModalBtn">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+
+        <!-- Add/Edit Habit Modal -->
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Create New Habit</h2>
+                    <button class="close-btn" id="closeModalBtn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="habitForm">
+                    <input type="hidden" id="editHabitId" value="">
+                    
+                    <div class="form-group">
+                        <label for="habitName">Habit Name</label>
+                        <input type="text" id="habitName" placeholder="e.g. Code 30 minutes, Gym, Read" required maxlength="30">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Icon / Emoji</label>
+                        <div class="emoji-selector" id="emojiSelector">
+                            <span class="emoji-option selected" data-emoji="💻">💻</span>
+                            <span class="emoji-option" data-emoji="💧">💧</span>
+                            <span class="emoji-option" data-emoji="🏋️">🏋️</span>
+                            <span class="emoji-option" data-emoji="📚">📚</span>
+                            <span class="emoji-option" data-emoji="🍎">🍎</span>
+                            <span class="emoji-option" data-emoji="🧘">🧘</span>
+                            <span class="emoji-option" data-emoji="🚶">🚶</span>
+                            <span class="emoji-option" data-emoji="🧹">🧹</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Accent Color</label>
+                        <div class="color-selector" id="colorSelector">
+                            <div class="color-option selected color-purple" data-color="purple" style="background-color: #a855f7;"></div>
+                            <div class="color-option color-blue" data-color="blue" style="background-color: #3b82f6;"></div>
+                            <div class="color-option color-cyan" data-color="cyan" style="background-color: #06b6d4;"></div>
+                            <div class="color-option color-green" data-color="green" style="background-color: #10b981;"></div>
+                            <div class="color-option color-orange" data-color="orange" style="background-color: #f97316;"></div>
+                            <div class="color-option color-pink" data-color="pink" style="background-color: #ec4899;"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitBtn">Save Habit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+    <!-- Register Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registered successfully!', reg))
+                    .catch(err => console.log('Service Worker registration failed.', err));
+            });
+        }
+    </script>
+</body>
+</html>
