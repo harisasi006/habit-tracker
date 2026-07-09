@@ -1,14 +1,16 @@
 // ============================================================================
 // File Name:    app.js
-// Description:  Upgraded logic for Strive Habit Tracker PWA.
-//               Integrates Web Audio API synthesizer, Canvas Confetti engine,
-//               Theme toggle, Analytics tracker, and Habit Editing.
+// Description:  Ultimate version of Strive Habit Tracker PWA.
+//               Integrates categories filtering, weekly progress bar target,
+//               30-day contribution heatmap, data backup/restore, Web Audio
+//               synthesizer, Canvas Confetti engine, themes, and editing.
 // ============================================================================
 
 // App State
 let habits = [];
 let globalStreak = 0;
 let currentTheme = 'midnight';
+let activeFilter = 'all';
 
 // Date Helper Functions
 const getTodayDateString = () => {
@@ -29,6 +31,23 @@ const formatDateToDayName = (dateStr) => {
     return days[date.getDay()];
 };
 
+// Gets the dates in the current ISO week (Monday to Sunday)
+const getCurrentWeekDates = () => {
+    const today = new Date();
+    const day = today.getDay();
+    // Adjust so Monday is 0, Sunday is 6
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(today.setDate(diff));
+    
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        weekDates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    }
+    return weekDates;
+};
+
 // SVG Progress Ring Configuration
 const CIRCUMFERENCE = 2 * Math.PI * 42; // r=42 -> ~263.89
 
@@ -43,16 +62,23 @@ const habitListEl = document.getElementById('habitList');
 const emptyStateEl = document.getElementById('emptyState');
 const habitCountEl = document.getElementById('habitCount');
 
-// Theme & Stats buttons
+// Theme & Stats & Filter Tabs
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 const statsToggleBtn = document.getElementById('statsToggleBtn');
 const analyticsPanel = document.getElementById('analyticsPanel');
+const filterTabsEl = document.getElementById('filterTabs');
 
 // Analytics DOM Elements
 const statCompletionsEl = document.getElementById('statCompletions');
 const statBestStreakEl = document.getElementById('statBestStreak');
 const statAvgRateEl = document.getElementById('statAvgRate');
 const habitBreakdownEl = document.getElementById('habitBreakdown');
+const heatmapGridEl = document.getElementById('heatmapGrid');
+
+// Sync / Backup elements
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const importFileInput = document.getElementById('importFileInput');
 
 // Modal Elements
 const modalOverlay = document.getElementById('modalOverlay');
@@ -60,6 +86,8 @@ const openModalBtn = document.getElementById('openModalBtn');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const habitForm = document.getElementById('habitForm');
 const habitNameInput = document.getElementById('habitName');
+const habitCategorySelect = document.getElementById('habitCategory');
+const habitTargetSelect = document.getElementById('habitTarget');
 const emojiSelector = document.getElementById('emojiSelector');
 const colorSelector = document.getElementById('colorSelector');
 const modalTitle = document.getElementById('modalTitle');
@@ -107,13 +135,15 @@ const loadData = () => {
     if (savedHabits) {
         habits = JSON.parse(savedHabits);
     } else {
-        // Seed default habits
+        // Seed default habits (with category and target fields added)
         habits = [
             {
                 id: '1',
                 name: 'Code 30 minutes',
                 emoji: '💻',
                 color: 'purple',
+                category: 'work',
+                target: 5,
                 streak: 0,
                 lastCompleted: '',
                 history: []
@@ -123,6 +153,8 @@ const loadData = () => {
                 name: 'Drink Water',
                 emoji: '💧',
                 color: 'blue',
+                category: 'health',
+                target: 7,
                 streak: 0,
                 lastCompleted: '',
                 history: []
@@ -148,6 +180,10 @@ const loadData = () => {
     
     // Check individual streaks
     habits.forEach(h => {
+        // Ensure default properties exist for older data compatibility
+        if (!h.category) h.category = 'work';
+        if (!h.target) h.target = 7;
+        
         if (h.lastCompleted && h.lastCompleted !== today && h.lastCompleted !== getYesterdayDateString()) {
             h.streak = 0;
         }
@@ -191,24 +227,36 @@ const updateUI = () => {
     renderWeeklySummary();
     updateProgressRing();
     updateAnalytics();
+    renderHeatmap();
     streakCountEl.textContent = globalStreak;
-    habitCountEl.textContent = `${habits.length} active`;
 };
 
-// Render the list of habits
+// Render the list of habits (filtered by active category tab)
 const renderHabitList = () => {
     habitListEl.innerHTML = '';
     const today = getTodayDateString();
+    const currentWeekDates = getCurrentWeekDates();
 
-    if (habits.length === 0) {
+    // Filter habits based on selected category tab
+    const filteredHabits = habits.filter(h => activeFilter === 'all' || h.category === activeFilter);
+
+    if (filteredHabits.length === 0) {
         emptyStateEl.style.display = 'flex';
+        habitCountEl.textContent = '0 active';
         return;
     } else {
         emptyStateEl.style.display = 'none';
     }
 
-    habits.forEach(h => {
+    habitCountEl.textContent = `${filteredHabits.length} active`;
+
+    filteredHabits.forEach(h => {
         const isCompletedToday = (h.lastCompleted === today);
+
+        // Calculate completions in current week
+        const completionsThisWeek = h.history.filter(d => currentWeekDates.includes(d)).length;
+        const targetRate = Math.round((completionsThisWeek / h.target) * 100);
+        const cappedRate = Math.min(100, targetRate);
 
         const card = document.createElement('div');
         card.className = `habit-card color-${h.color} ${isCompletedToday ? 'completed' : ''}`;
@@ -221,8 +269,16 @@ const renderHabitList = () => {
                 <div class="habit-details">
                     <h3>${h.name}</h3>
                     <div class="habit-stats">
-                        <i class="fa-solid fa-fire"></i>
-                        <span>${h.streak} day streak</span>
+                        <div class="habit-stats-row">
+                            <span><i class="fa-solid fa-fire"></i> ${h.streak} day streak</span>
+                        </div>
+                        <!-- Weekly Goal Progress Bar -->
+                        <div class="weekly-progress-container">
+                            <span class="weekly-text">Weekly: ${completionsThisWeek}/${h.target} days</span>
+                            <div class="weekly-bar-bg">
+                                <div class="weekly-bar-fill" style="width: ${cappedRate}%; background-color: var(--accent-${h.color});"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -251,49 +307,39 @@ window.toggleHabit = (id) => {
     const oldCompletedCount = habits.filter(h => h.lastCompleted === today).length;
 
     if (isCompletedToday) {
-        // Uncheck
         h.lastCompleted = h.history.length > 1 ? h.history[h.history.length - 2] : '';
         h.history = h.history.filter(d => d !== today);
         
-        // Recalculate streak
         if (h.history.includes(yesterday)) {
             h.streak = calculateHistoryStreak(h.history);
         } else {
             h.streak = 0;
         }
     } else {
-        // Check complete
         h.history.push(today);
         h.lastCompleted = today;
         
-        // Play synthesizer completion sound!
         playCompletionSound();
-        
-        // Calculate streak
         h.streak = calculateHistoryStreak(h.history);
     }
 
-    // Update Global Streak
     recalculateGlobalStreak();
     saveData();
     updateUI();
 
-    // Trigger Confetti if this checkoff hits 100% completion
     const newCompletedCount = habits.filter(h => h.lastCompleted === today).length;
     if (newCompletedCount === habits.length && oldCompletedCount !== habits.length) {
         startConfetti();
     }
 };
 
-// Re-usable Web Audio API chord synthesizer (no audio files needed!)
+// Web Audio API chord synthesizer
 const playCompletionSound = () => {
     try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
         
         const audioCtx = new AudioContext();
-        
-        // Frequencies for a sweet C major arpeggio/chord (C5, E5, G5)
         const notes = [523.25, 659.25, 783.99]; 
         
         notes.forEach((freq, idx) => {
@@ -303,10 +349,8 @@ const playCompletionSound = () => {
             osc.type = 'sine';
             osc.frequency.value = freq;
             
-            // Stagger starting times slightly for an arpeggiated harp sound
             const startTime = audioCtx.currentTime + (idx * 0.06);
             
-            // Smooth volume fade out
             gain.gain.setValueAtTime(0, startTime);
             gain.gain.linearRampToValueAtTime(0.15, startTime + 0.03);
             gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.6);
@@ -318,11 +362,11 @@ const playCompletionSound = () => {
             osc.stop(startTime + 0.6);
         });
     } catch (e) {
-        console.warn('AudioContext failed to play audio.', e);
+        console.warn('AudioContext playback error', e);
     }
 };
 
-// Compute consecutive days streak from history dates
+// Compute consecutive days streak
 const calculateHistoryStreak = (history) => {
     if (history.length === 0) return 0;
     const sorted = [...new Set(history)].sort();
@@ -383,10 +427,11 @@ window.openEditModal = (id) => {
     isEditMode = true;
     editHabitIdInput.value = h.id;
     habitNameInput.value = h.name;
+    habitCategorySelect.value = h.category || 'work';
+    habitTargetSelect.value = h.target || 7;
     selectedEmoji = h.emoji;
     selectedColor = h.color;
 
-    // Pre-select emoji option in list
     document.querySelectorAll('.emoji-option').forEach(el => {
         if (el.getAttribute('data-emoji') === h.emoji) {
             el.classList.add('selected');
@@ -395,7 +440,6 @@ window.openEditModal = (id) => {
         }
     });
 
-    // Pre-select color option in list
     document.querySelectorAll('.color-option').forEach(el => {
         if (el.getAttribute('data-color') === h.color) {
             el.classList.add('selected');
@@ -492,7 +536,6 @@ const updateAnalytics = () => {
     const totalPossibleSessions = habits.length * 30;
     let actualCompletionsLast30Days = 0;
     
-    // Generate date strings for last 30 days
     const last30Dates = [];
     const checkDate = new Date();
     for (let i = 0; i < 30; i++) {
@@ -516,7 +559,7 @@ const updateAnalytics = () => {
     habitBreakdownEl.innerHTML = '';
     habits.forEach(h => {
         const habitRate = h.history.length > 0 ? Math.round((h.history.length / 30) * 100) : 0;
-        const cappedRate = Math.min(100, habitRate); // Capped at 100% just in case of duplicate days
+        const cappedRate = Math.min(100, habitRate);
         
         const row = document.createElement('div');
         row.className = 'breakdown-row';
@@ -531,6 +574,96 @@ const updateAnalytics = () => {
         `;
         habitBreakdownEl.appendChild(row);
     });
+};
+
+// Render GitHub style Heatmap Grid (30 days)
+const renderHeatmap = () => {
+    heatmapGridEl.innerHTML = '';
+    
+    // Generate dates for the last 30 days (older to newer)
+    const dates = [];
+    const todayObj = new Date();
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(todayObj.getDate() - i);
+        dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    }
+
+    dates.forEach(dateStr => {
+        const cell = document.createElement('div');
+        cell.className = 'heatmap-cell';
+        
+        // Count how many habits completed on this date
+        const completedCount = habits.filter(h => h.history.includes(dateStr)).length;
+        
+        // Determine completion level
+        if (habits.length > 0 && completedCount > 0) {
+            const completionRate = completedCount / habits.length;
+            if (completionRate === 1.0) {
+                cell.classList.add('level-3'); // 100%
+            } else if (completionRate >= 0.5) {
+                cell.classList.add('level-2'); // 50% - 99%
+            } else {
+                cell.classList.add('level-1'); // 1% - 49%
+            }
+        }
+        
+        // Add detailed tooltip
+        cell.setAttribute('title', `${dateStr}: ${completedCount}/${habits.length} habits completed`);
+        heatmapGridEl.appendChild(cell);
+    });
+};
+
+// Export local data to JSON file
+const exportData = () => {
+    const dataStr = JSON.stringify({
+        habits: habits,
+        globalStreak: globalStreak,
+        currentTheme: currentTheme
+    }, null, 2);
+    
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `strive_habits_backup_${getTodayDateString()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+// Import backup JSON file
+const handleFileImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const imported = JSON.parse(event.target.result);
+            if (imported && Array.isArray(imported.habits)) {
+                habits = imported.habits;
+                globalStreak = typeof imported.globalStreak === 'number' ? imported.globalStreak : 0;
+                currentTheme = imported.currentTheme || 'midnight';
+                
+                // Save and load
+                saveData();
+                applyTheme(currentTheme);
+                updateUI();
+                alert('App data successfully restored!');
+            } else {
+                alert('Invalid backup file structure.');
+            }
+        } catch (err) {
+            alert('Failed to parse JSON file.');
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
 };
 
 // Event Listeners Configuration
@@ -584,24 +717,28 @@ const setupEventListeners = () => {
         e.preventDefault();
         
         const name = habitNameInput.value.trim();
+        const category = habitCategorySelect.value;
+        const target = parseInt(habitTargetSelect.value, 10);
         if (!name) return;
 
         if (isEditMode) {
-            // Edit existing habit
             const id = editHabitIdInput.value;
             const h = habits.find(habit => habit.id === id);
             if (h) {
                 h.name = name;
                 h.emoji = selectedEmoji;
                 h.color = selectedColor;
+                h.category = category;
+                h.target = target;
             }
         } else {
-            // Create new habit
             const newHabit = {
                 id: Date.now().toString(),
                 name: name,
                 emoji: selectedEmoji,
                 color: selectedColor,
+                category: category,
+                target: target,
                 streak: 0,
                 lastCompleted: '',
                 history: []
@@ -616,13 +753,26 @@ const setupEventListeners = () => {
         resetForm();
     });
 
+    // Category Tabs Filter Navigation
+    filterTabsEl.addEventListener('click', (e) => {
+        const tab = e.target.closest('.filter-tab');
+        if (!tab) return;
+
+        document.querySelectorAll('.filter-tab').forEach(el => el.classList.remove('active'));
+        tab.classList.add('active');
+        activeFilter = tab.getAttribute('data-filter');
+        
+        // Re-render habit list with selected filter applied
+        renderHabitList();
+    });
+
     // Expandable Analytics Panel Toggle
     statsToggleBtn.addEventListener('click', () => {
         analyticsPanel.classList.toggle('active');
         statsToggleBtn.classList.toggle('active');
     });
 
-    // Theme Switcher Toggle (Midnight -> Cyberpunk -> Emerald -> Midnight)
+    // Theme Switcher Toggle
     themeToggleBtn.addEventListener('click', () => {
         let nextTheme = 'midnight';
         if (currentTheme === 'midnight') nextTheme = 'cyberpunk';
@@ -632,12 +782,19 @@ const setupEventListeners = () => {
         saveData();
         updateUI();
     });
+
+    // Export and Import Buttons Event Listeners
+    exportBtn.addEventListener('click', exportData);
+    importBtn.addEventListener('click', () => importFileInput.click());
+    importFileInput.addEventListener('change', handleFileImport);
 };
 
 const resetForm = () => {
     habitForm.reset();
     isEditMode = false;
     editHabitIdInput.value = "";
+    habitCategorySelect.value = "work";
+    habitTargetSelect.value = "7";
     
     document.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
     const defaultEmoji = document.querySelector('.emoji-option[data-emoji="💻"]');
@@ -666,18 +823,15 @@ const setupConfettiResize = () => {
 };
 
 const startConfetti = () => {
-    // Stop any current animation first
     if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
     confettiParticles = [];
 
-    // Colors matching theme palettes
     const colors = ['#a855f7', '#06b6d4', '#10b981', '#f97316', '#ec4899', '#3b82f6'];
 
-    // Spawn 150 particles
     for (let i = 0; i < 150; i++) {
         confettiParticles.push({
             x: Math.random() * confettiCanvas.width,
-            y: Math.random() * confettiCanvas.height - confettiCanvas.height, // Spawn above screen
+            y: Math.random() * confettiCanvas.height - confettiCanvas.height,
             r: Math.random() * 6 + 4,
             d: Math.random() * confettiCanvas.height,
             color: colors[Math.floor(Math.random() * colors.length)],
@@ -697,11 +851,10 @@ const animateConfetti = () => {
 
     confettiParticles.forEach((p, idx) => {
         p.tiltAngle += p.tiltAngleIncremental;
-        p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2; // Falling velocity
+        p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
         p.x += Math.sin(p.tiltAngle);
         p.tilt = Math.sin(p.tiltAngle - idx / 3) * 15;
 
-        // Draw particle
         ctx.beginPath();
         ctx.lineWidth = p.r;
         ctx.strokeStyle = p.color;

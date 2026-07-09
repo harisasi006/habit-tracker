@@ -87,8 +87,29 @@
                             <span class="stat-label">Success Rate</span>
                         </div>
                     </div>
+                    
+                    <!-- GitHub style Heatmap Grid -->
+                    <div class="heatmap-section">
+                        <h4>30-Day Consistency Map</h4>
+                        <div class="heatmap-grid" id="heatmapGrid"></div>
+                    </div>
+
                     <div class="habit-breakdown" id="habitBreakdown">
                         <!-- Filled dynamically by JS -->
+                    </div>
+
+                    <!-- Backup & Sync Section -->
+                    <div class="backup-section">
+                        <h4>Data Sync</h4>
+                        <div class="backup-buttons">
+                            <button type="button" class="backup-btn" id="exportBtn">
+                                <i class="fa-solid fa-download"></i> Export
+                            </button>
+                            <button type="button" class="backup-btn" id="importBtn">
+                                <i class="fa-solid fa-upload"></i> Import
+                            </button>
+                            <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -96,6 +117,16 @@
 
         <!-- Main Content -->
         <main>
+            <!-- Category Filter Tabs -->
+            <div class="filter-tabs" id="filterTabs">
+                <button class="filter-tab active" data-filter="all">All</button>
+                <button class="filter-tab" data-filter="work">Work</button>
+                <button class="filter-tab" data-filter="health">Health</button>
+                <button class="filter-tab" data-filter="mind">Mind</button>
+                <button class="filter-tab" data-filter="fitness">Fitness</button>
+                <button class="filter-tab" data-filter="personal">Personal</button>
+            </div>
+
             <div class="section-title">
                 <h2>My Habits</h2>
                 <span class="filter-count" id="habitCount">0 active</span>
@@ -132,6 +163,30 @@
                     <div class="form-group">
                         <label for="habitName">Habit Name</label>
                         <input type="text" id="habitName" placeholder="e.g. Code 30 minutes, Gym, Read" required maxlength="30">
+                    </div>
+
+                    <div class="form-group-row">
+                        <div class="form-group select-group">
+                            <label for="habitCategory">Category</label>
+                            <select id="habitCategory" class="form-select">
+                                <option value="work">Work & Focus</option>
+                                <option value="health">Health & Eat</option>
+                                <option value="mind">Mind & Soul</option>
+                                <option value="fitness">Fitness & Gym</option>
+                                <option value="personal">Personal</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group select-group">
+                            <label for="habitTarget">Weekly Goal</label>
+                            <select id="habitTarget" class="form-select">
+                                <option value="7">7 Days (Every day)</option>
+                                <option value="5">5 Days / week</option>
+                                <option value="3">3 Days / week</option>
+                                <option value="2">2 Days / week</option>
+                                <option value="1">1 Day / week</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-group">
