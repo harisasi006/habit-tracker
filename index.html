@@ -94,6 +94,14 @@
                         <div class="heatmap-grid" id="heatmapGrid"></div>
                     </div>
 
+                    <!-- Achievements Section -->
+                    <div class="achievements-section">
+                        <h4>Strive Achievements</h4>
+                        <div class="achievements-grid" id="achievementsGrid">
+                            <!-- Filled dynamically by JS -->
+                        </div>
+                    </div>
+
                     <div class="habit-breakdown" id="habitBreakdown">
                         <!-- Filled dynamically by JS -->
                     </div>
@@ -182,12 +190,32 @@
                             <select id="habitTarget" class="form-select">
                                 <option value="7">7 Days (Every day)</option>
                                 <option value="5">5 Days / week</option>
-                                <option value="3">3 Days / week</option>
-                                <option value="2">2 Days / week</option>
-                                <option value="1">1 Day / week</option>
-                            </select>
-                        </div>
-                    </div>
+                                 <option value="3">3 Days / week</option>
+                                 <option value="2">2 Days / week</option>
+                                 <option value="1">1 Day / week</option>
+                             </select>
+                         </div>
+                     </div>
+
+                     <div class="form-group-row">
+                         <div class="form-group checkbox-group">
+                             <input type="checkbox" id="habitTimerEnabled">
+                             <label for="habitTimerEnabled" style="display: inline-block; cursor: pointer;">Enable Focus Timer</label>
+                         </div>
+                         <div class="form-group select-group" id="timerDurationGroup" style="display: none;">
+                             <label for="habitTimerDuration">Timer Duration</label>
+                             <select id="habitTimerDuration" class="form-select">
+                                 <option value="1">1 Minute</option>
+                                 <option value="5">5 Minutes</option>
+                                 <option value="10">10 Minutes</option>
+                                 <option value="15">15 Minutes</option>
+                                 <option value="25" selected>25 Minutes</option>
+                                 <option value="30">30 Minutes</option>
+                                 <option value="45">45 Minutes</option>
+                                 <option value="60">60 Minutes</option>
+                             </select>
+                         </div>
+                     </div>
 
                     <div class="form-group">
                         <label>Icon / Emoji</label>
@@ -217,6 +245,31 @@
 
                     <button type="submit" class="submit-btn" id="submitBtn">Save Habit</button>
                 </form>
+            </div>
+        </div>
+
+        <!-- Log History Calendar Modal -->
+        <div class="modal-overlay" id="calendarModalOverlay">
+            <div class="modal-card calendar-modal-card">
+                <div class="modal-header">
+                    <h2 id="calendarModalTitle">Log History</h2>
+                    <button class="close-btn" id="closeCalendarModalBtn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="calendar-controls">
+                    <button class="calendar-nav-btn" id="prevMonthBtn" type="button"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span class="calendar-month-year" id="calendarMonthYear">July 2026</span>
+                    <button class="calendar-nav-btn" id="nextMonthBtn" type="button"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="calendar-weekdays">
+                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+                <div class="calendar-grid" id="calendarGrid">
+                    <!-- Filled dynamically by JS -->
+                </div>
+                <div class="calendar-legend">
+                    <div class="legend-item"><span class="legend-dot completed"></span> Completed</div>
+                    <div class="legend-item"><span class="legend-dot"></span> Unscheduled / Missed</div>
+                </div>
             </div>
         </div>
     </div>
