@@ -25,6 +25,10 @@
 8. **Weekly Targets**: Set specific target days per week for each habit (e.g., Gym 3 times a week, Drink Water 7 times a week) and track weekly progress bars inside each habit card.
 9. **JSON Data Backup (Sync)**: Easily export all habits and tracking history into a local JSON backup file or restore it to sync your data.
 10. **Habit Customization Modal**: Add or edit habit names, categories, weekly goals, emoji icons, and custom accent colors in place.
+11. **Focus Timer Integration**: Add focused countdown timers directly inside habit cards. Once completed, it plays an arpeggiated sound and checks off the habit automatically.
+12. **Inline Note-Taking (Reflection Log)**: Jot down daily thoughts, feelings, or notes in an auto-saving text area once a habit is checked off.
+13. **Strive Achievements**: Earn glowing reward badges (e.g., "Deep Focus", "Week Warrior", "Mindful Logger") that unlock dynamically in your analytics panel as you complete challenges.
+14. **Log History Calendar Modal**: Edit completions for any past date with an interactive monthly calendar view, immediately recalculating streaks and consistency maps.
 
 ---
 
