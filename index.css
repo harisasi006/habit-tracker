@@ -1283,4 +1283,317 @@ header {
     width: 100%;
 }
 
+/* ============================================================================
+   Next-Level Feature Styles: Sound Styles Popover, SVG Charts, Timeline, Time Boxing
+   ============================================================================ */
+
+/* Sound Styles Popover */
+.sound-popover {
+    display: none;
+    position: absolute;
+    top: 48px;
+    right: 0;
+    width: 180px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    overflow: hidden;
+    padding: 6px;
+    animation: slideIn 0.2s ease forwards;
+}
+.sound-popover.active {
+    display: block;
+}
+.sound-option {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.sound-option:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+.sound-option.active {
+    color: var(--text-primary);
+    background: rgba(168, 85, 247, 0.15);
+    border-left: 3px solid var(--accent-purple);
+}
+
+/* Weekly Consistency SVG Chart */
+.chart-section {
+    margin: 20px 0;
+    border-top: 1px solid var(--border-glass);
+    padding-top: 16px;
+}
+.chart-section h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+.weekly-chart-container {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    padding: 12px;
+    width: 100%;
+    position: relative;
+}
+.svg-chart {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.chart-tooltip {
+    position: absolute;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid var(--border-glass);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-primary);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 10;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Strive Journey Timeline */
+.journey-section {
+    margin: 20px 0;
+    border-top: 1px solid var(--border-glass);
+    padding-top: 16px;
+}
+.journey-section h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+.journey-timeline {
+    position: relative;
+    padding-left: 28px;
+    margin-left: 8px;
+}
+.journey-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    background: rgba(255, 255, 255, 0.05);
+}
+.journey-item {
+    position: relative;
+    margin-bottom: 16px;
+}
+.journey-item:last-child {
+    margin-bottom: 0;
+}
+.journey-dot {
+    position: absolute;
+    left: -28px;
+    top: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #1e293b;
+    border: 2px solid var(--border-glass);
+    transform: translateX(-50%);
+    transition: all 0.3s;
+}
+.journey-item.unlocked .journey-dot {
+    background: var(--accent-purple);
+    border-color: #ffffff;
+    box-shadow: 0 0 8px var(--accent-purple);
+}
+.journey-content {
+    display: flex;
+    flex-direction: column;
+}
+.journey-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: color 0.3s;
+}
+.journey-item.unlocked .journey-title {
+    color: var(--text-primary);
+}
+.journey-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+.journey-item.unlocked .journey-desc {
+    opacity: 0.85;
+}
+
+/* Time-Boxing Schedule Grid */
+.time-boxing-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glass);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+.time-boxing-header {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    padding: 14px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+.time-boxing-header:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+.time-boxing-header span i {
+    color: var(--accent-purple);
+    margin-right: 6px;
+}
+#timeBoxingChevron {
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: transform 0.3s ease;
+}
+#timeBoxingChevron.rotate {
+    transform: rotate(180deg);
+}
+.time-boxing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 16px;
+    border-top: 1px solid var(--border-glass);
+    background: rgba(0, 0, 0, 0.1);
+}
+.time-slot-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.time-slot-column.active-slot h5 {
+    color: var(--accent-purple);
+    text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+.time-slot-column h5 {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+.slot-habits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 50px;
+}
+.slot-habit-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.slot-habit-item:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
+}
+.slot-habit-item.completed {
+    text-decoration: line-through;
+    opacity: 0.45;
+    background: rgba(16, 185, 129, 0.01);
+}
+.slot-habit-item.up-next {
+    border-color: rgba(168, 85, 247, 0.35);
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.15);
+    animation: upNextPulse 2s infinite alternate;
+}
+@keyframes upNextPulse {
+    0% { border-color: rgba(168, 85, 247, 0.25); box-shadow: 0 0 4px rgba(168, 85, 247, 0.1); }
+    100% { border-color: rgba(168, 85, 247, 0.55); box-shadow: 0 0 10px rgba(168, 85, 247, 0.25); }
+}
+.slot-empty-text {
+    font-size: 10px;
+    color: var(--text-secondary);
+    opacity: 0.4;
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/* Habit Health Badges */
+.health-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-left: 8px;
+}
+.health-badge.health-fire {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.15);
+}
+.health-badge.health-lightning {
+    color: #eab308;
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.2);
+    box-shadow: 0 0 8px rgba(234, 179, 8, 0.15);
+}
+.health-badge.health-cold {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.18);
+}
+.health-badge.health-leaf {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.18);
+}
+.habit-stats-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+
 

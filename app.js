@@ -17,6 +17,8 @@ let activeTimers = {};
 let editingNotes = {};
 let currentCalendarHabitId = null;
 let calendarCurrentDate = new Date();
+let soundStyle = 'synth';
+let timeBoxingCollapsed = true;
 
 const achievements = [
     { id: 'first_step', name: 'First Step', desc: 'Complete your first habit check-in', icon: 'fa-shoe-prints', badge: 'bronze' },
@@ -189,6 +191,30 @@ const loadData = () => {
     }
     applyTheme(currentTheme);
 
+    // Load next level settings
+    const savedSound = localStorage.getItem('strive_sound_style');
+    if (savedSound) {
+        soundStyle = savedSound;
+    }
+    const savedCollapsed = localStorage.getItem('strive_timeboxing_collapsed');
+    if (savedCollapsed) {
+        timeBoxingCollapsed = savedCollapsed === 'true';
+    }
+
+    const gridEl = document.getElementById('timeBoxingGrid');
+    const chevronEl = document.getElementById('timeBoxingChevron');
+    if (gridEl) gridEl.style.display = timeBoxingCollapsed ? 'none' : 'grid';
+    if (chevronEl && !timeBoxingCollapsed) chevronEl.classList.add('rotate');
+    
+    // Set active class on sound options dropdown
+    document.querySelectorAll('.sound-option').forEach(el => {
+        if (el.getAttribute('data-sound') === soundStyle) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+
     // Check for streak reset
     if (lastAccessDate && lastAccessDate !== today && lastAccessDate !== getYesterdayDateString()) {
         globalStreak = 0;
@@ -202,6 +228,7 @@ const loadData = () => {
         if (!h.target) h.target = 7;
         if (h.timerEnabled === undefined) h.timerEnabled = false;
         if (h.timerDuration === undefined) h.timerDuration = 25;
+        if (h.timeSlot === undefined) h.timeSlot = 'any';
         if (!h.notes) h.notes = {};
         
         if (h.lastCompleted && h.lastCompleted !== today && h.lastCompleted !== getYesterdayDateString()) {
@@ -218,6 +245,8 @@ const saveData = () => {
     localStorage.setItem('strive_habits', JSON.stringify(habits));
     localStorage.setItem('strive_global_streak', String(globalStreak));
     localStorage.setItem('strive_theme', currentTheme);
+    localStorage.setItem('strive_sound_style', soundStyle);
+    localStorage.setItem('strive_timeboxing_collapsed', String(timeBoxingCollapsed));
 };
 
 // Apply visual themes and update SVG gradients
@@ -248,6 +277,8 @@ const updateUI = () => {
     updateProgressRing();
     updateAnalytics();
     renderHeatmap();
+    renderTimeBoxingSchedule();
+    renderWeeklyChart();
     streakCountEl.textContent = globalStreak;
 };
 
@@ -277,6 +308,19 @@ const renderHabitList = () => {
         const completionsThisWeek = h.history.filter(d => currentWeekDates.includes(d)).length;
         const targetRate = Math.round((completionsThisWeek / h.target) * 100);
         const cappedRate = Math.min(100, targetRate);
+
+        // Calculate habit health status
+        const healthStatus = calculateHabitHealth(h);
+        let healthHTML = '';
+        if (healthStatus === 'fire') {
+            healthHTML = `<span class="health-badge health-fire" title="On Fire: 5+ day streak!"><i class="fa-solid fa-fire"></i> Fire</span>`;
+        } else if (healthStatus === 'consistent') {
+            healthHTML = `<span class="health-badge health-lightning" title="Consistent: Active routines!"><i class="fa-solid fa-bolt"></i> Active</span>`;
+        } else if (healthStatus === 'cold') {
+            healthHTML = `<span class="health-badge health-cold" title="Cold: No check-ins in last 7 days."><i class="fa-regular fa-snowflake"></i> Cold</span>`;
+        } else {
+            healthHTML = `<span class="health-badge health-leaf" title="Steady pace."><i class="fa-solid fa-leaf"></i> Steady</span>`;
+        }
 
         const card = document.createElement('div');
         card.className = `habit-card color-${h.color} ${isCompletedToday ? 'completed' : ''}`;
@@ -345,6 +389,7 @@ const renderHabitList = () => {
                         <div class="habit-stats">
                             <div class="habit-stats-row">
                                 <span><i class="fa-solid fa-fire"></i> ${h.streak} day streak</span>
+                                ${healthHTML}
                             </div>
                             <!-- Weekly Goal Progress Bar -->
                             <div class="weekly-progress-container">
@@ -413,34 +458,116 @@ window.toggleHabit = (id) => {
     }
 };
 
-// Web Audio API chord synthesizer
+// Web Audio API chord synthesizer with custom themes
 const playCompletionSound = () => {
     try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
         
         const audioCtx = new AudioContext();
-        const notes = [523.25, 659.25, 783.99]; 
-        
-        notes.forEach((freq, idx) => {
+        const now = audioCtx.currentTime;
+
+        if (soundStyle === 'synth') {
+            // Cyber Synth (Arpeggiated Sine Chord)
+            const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                
+                const startTime = now + (idx * 0.08);
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.15, startTime + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.6);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.6);
+            });
+        } else if (soundStyle === 'zen') {
+            // Zen Tibetan Bowl (Deep modulated sine wave with high bell chime harmonics)
+            const osc1 = audioCtx.createOscillator();
+            const gain1 = audioCtx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.value = 180; // deep calming base
+            
+            gain1.gain.setValueAtTime(0, now);
+            gain1.gain.linearRampToValueAtTime(0.3, now + 0.1);
+            gain1.gain.exponentialRampToValueAtTime(0.0001, now + 2.0);
+            
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.value = 540; // harmonic multiplier (180 * 3)
+            
+            gain2.gain.setValueAtTime(0, now);
+            gain2.gain.linearRampToValueAtTime(0.15, now + 0.05);
+            gain2.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+            
+            const lfo = audioCtx.createOscillator();
+            const lfoGain = audioCtx.createGain();
+            lfo.frequency.value = 6; // 6Hz vibration
+            lfoGain.gain.value = 15; // pitch modulation range
+            
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc1.frequency);
+            
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            
+            lfo.start(now);
+            osc1.start(now);
+            osc2.start(now);
+            
+            lfo.stop(now + 2.0);
+            osc1.stop(now + 2.0);
+            osc2.stop(now + 2.0);
+        } else if (soundStyle === 'bird') {
+            // Forest Bird Chirp (Double pitch-sweeping sine whistles)
+            const chirps = [0, 0.15];
+            chirps.forEach((delay) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                
+                const startTime = now + delay;
+                osc.frequency.setValueAtTime(2500, startTime);
+                osc.frequency.exponentialRampToValueAtTime(4200, startTime + 0.08);
+                osc.frequency.exponentialRampToValueAtTime(3200, startTime + 0.12);
+                
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.08, startTime + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.12);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.12);
+            });
+        } else if (soundStyle === 'retro') {
+            // Retro 8-bit Arcade Sound (Square wave slide)
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
+            osc.type = 'square';
             
-            osc.type = 'sine';
-            osc.frequency.value = freq;
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.setValueAtTime(600, now + 0.08);
+            osc.frequency.setValueAtTime(1000, now + 0.16);
             
-            const startTime = audioCtx.currentTime + (idx * 0.06);
-            
-            gain.gain.setValueAtTime(0, startTime);
-            gain.gain.linearRampToValueAtTime(0.15, startTime + 0.03);
-            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.6);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.06, now + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
             
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            
-            osc.start(startTime);
-            osc.stop(startTime + 0.6);
-        });
+            osc.start(now);
+            osc.stop(now + 0.28);
+        }
     } catch (e) {
         console.warn('AudioContext playback error', e);
     }
@@ -520,6 +647,9 @@ window.openEditModal = (id) => {
     timerEnabledInput.checked = h.timerEnabled || false;
     timerDurationSelect.value = h.timerDuration || 25;
     timerDurationGroup.style.display = h.timerEnabled ? 'block' : 'none';
+
+    // Time schedule slot setting
+    document.getElementById('habitTimeSlot').value = h.timeSlot || 'any';
 
     document.querySelectorAll('.emoji-option').forEach(el => {
         if (el.getAttribute('data-emoji') === h.emoji) {
@@ -607,6 +737,7 @@ const updateAnalytics = () => {
         statAvgRateEl.textContent = '0%';
         habitBreakdownEl.innerHTML = '<p style="text-align: center; color: var(--text-secondary); font-size: 13px;">No stats available yet.</p>';
         renderAchievements();
+        renderJourneyTimeline();
         return;
     }
 
@@ -666,6 +797,7 @@ const updateAnalytics = () => {
     });
 
     renderAchievements();
+    renderJourneyTimeline();
 };
 
 // Render GitHub style Heatmap Grid (30 days)
@@ -813,6 +945,7 @@ const setupEventListeners = () => {
         const target = parseInt(habitTargetSelect.value, 10);
         const timerEnabled = document.getElementById('habitTimerEnabled').checked;
         const timerDuration = parseInt(document.getElementById('habitTimerDuration').value, 10);
+        const timeSlot = document.getElementById('habitTimeSlot').value;
         
         if (!name) return;
 
@@ -827,6 +960,7 @@ const setupEventListeners = () => {
                 h.target = target;
                 h.timerEnabled = timerEnabled;
                 h.timerDuration = timerDuration;
+                h.timeSlot = timeSlot;
             }
         } else {
             const newHabit = {
@@ -841,6 +975,7 @@ const setupEventListeners = () => {
                 history: [],
                 timerEnabled: timerEnabled,
                 timerDuration: timerDuration,
+                timeSlot: timeSlot,
                 notes: {}
             };
             habits.push(newHabit);
@@ -908,6 +1043,45 @@ const setupEventListeners = () => {
             closeCalendarModal();
         }
     });
+
+    // Sound settings popover toggle
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    const soundPopover = document.getElementById('soundPopover');
+    soundToggleBtn.addEventListener('click', (e) => {
+        soundPopover.classList.toggle('active');
+        e.stopPropagation();
+    });
+    // Hide popover when clicking anywhere else
+    document.addEventListener('click', () => {
+        soundPopover.classList.remove('active');
+    });
+    // Prevent hiding popover when clicking inside it
+    soundPopover.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+    // Handle sound style selection
+    soundPopover.addEventListener('click', (e) => {
+        const option = e.target.closest('.sound-option');
+        if (!option) return;
+        
+        soundStyle = option.getAttribute('data-sound');
+        document.querySelectorAll('.sound-option').forEach(el => el.classList.remove('active'));
+        option.classList.add('active');
+        
+        playCompletionSound(); // Preview play the sound!
+        saveData();
+    });
+
+    // Time-boxing Schedule Panel Toggle
+    const timeBoxingToggleBtn = document.getElementById('timeBoxingToggleBtn');
+    const timeBoxingGrid = document.getElementById('timeBoxingGrid');
+    const timeBoxingChevron = document.getElementById('timeBoxingChevron');
+    timeBoxingToggleBtn.addEventListener('click', () => {
+        timeBoxingCollapsed = !timeBoxingCollapsed;
+        timeBoxingGrid.style.display = timeBoxingCollapsed ? 'none' : 'grid';
+        timeBoxingChevron.classList.toggle('rotate');
+        saveData();
+    });
 };
 
 const resetForm = () => {
@@ -920,6 +1094,7 @@ const resetForm = () => {
     document.getElementById('habitTimerEnabled').checked = false;
     document.getElementById('habitTimerDuration').value = "25";
     document.getElementById('timerDurationGroup').style.display = 'none';
+    document.getElementById('habitTimeSlot').value = 'any';
 
     document.querySelectorAll('.emoji-option').forEach(el => el.classList.remove('selected'));
     const defaultEmoji = document.querySelector('.emoji-option[data-emoji="💻"]');
@@ -1235,6 +1410,277 @@ window.toggleCalendarDate = (dateStr) => {
     if (completedCount === habits.length && dateStr === today && !isCompleted) {
         startConfetti();
     }
+};
+
+// ============================================================================
+// Habit Health Logic
+// ============================================================================
+const getPast7Days = () => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    }
+    return dates;
+};
+
+const calculateHabitHealth = (h) => {
+    if (h.streak >= 5) return 'fire';
+    
+    const past7Dates = getPast7Days();
+    const completionsLast7 = h.history.filter(d => past7Dates.includes(d)).length;
+    
+    if (completionsLast7 >= 3) return 'consistent';
+    if (completionsLast7 === 0) return 'cold';
+    return 'balanced';
+};
+
+// ============================================================================
+// Interactive SVG Weekly Performance Chart Logic
+// ============================================================================
+const renderWeeklyChart = () => {
+    const container = document.getElementById('weeklyChartContainer');
+    if (!container) return;
+
+    container.innerHTML = '';
+    
+    // Create tooltip element inside container if it doesn't exist
+    let tooltip = container.querySelector('.chart-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.className = 'chart-tooltip';
+        container.appendChild(tooltip);
+    }
+
+    const weekDates = getCurrentWeekDates();
+    const maxValue = Math.max(1, habits.length);
+    
+    // Graph configuration
+    const width = 400;
+    const height = 150;
+    const paddingLeft = 35;
+    const paddingRight = 20;
+    const paddingTop = 20;
+    const paddingBottom = 25;
+    
+    const graphWidth = width - paddingLeft - paddingRight;
+    const graphHeight = height - paddingTop - paddingBottom;
+
+    // Compute data points
+    const points = weekDates.map((dateStr, idx) => {
+        const completedCount = habits.filter(h => h.history.includes(dateStr)).length;
+        const x = paddingLeft + (idx / 6) * graphWidth;
+        const y = height - paddingBottom - (completedCount / maxValue) * graphHeight;
+        const dayLabel = formatDateToDayName(dateStr);
+        return { x, y, count: completedCount, date: dateStr, dayLabel };
+    });
+
+    // Begin SVG Generation
+    let svgHTML = `<svg viewBox="0 0 ${width} ${height}" class="svg-chart">`;
+    
+    // Linear gradients definitions
+    svgHTML += `
+        <defs>
+            <linearGradient id="chartLineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="var(--accent-purple)" />
+                <stop offset="100%" stop-color="var(--accent-cyan)" />
+            </linearGradient>
+            <linearGradient id="chartFillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="var(--accent-purple)" stop-opacity="0.25" />
+                <stop offset="100%" stop-color="var(--accent-purple)" stop-opacity="0" />
+            </linearGradient>
+            <filter id="chartGlow" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="var(--accent-purple)" flood-opacity="0.3" />
+            </filter>
+        </defs>
+    `;
+
+    // 1. Draw Grid Lines
+    const gridLevels = [0, 0.5, 1]; // bottom, middle, top
+    gridLevels.forEach(level => {
+        const yVal = height - paddingBottom - level * graphHeight;
+        const countLabel = Math.round(level * maxValue);
+        // Grid line path
+        svgHTML += `<line x1="${paddingLeft}" y1="${yVal}" x2="${width - paddingRight}" y2="${yVal}" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="3 3" />`;
+        // Left text label
+        svgHTML += `<text x="${paddingLeft - 8}" y="${yVal + 3}" fill="var(--text-secondary)" font-size="9" text-anchor="end" font-weight="500">${countLabel}</text>`;
+    });
+
+    // 2. Draw Fill Area below the curve
+    let fillPath = `M ${points[0].x} ${height - paddingBottom}`;
+    points.forEach(p => fillPath += ` L ${p.x} ${p.y}`);
+    fillPath += ` L ${points[points.length - 1].x} ${height - paddingBottom} Z`;
+    svgHTML += `<path d="${fillPath}" fill="url(#chartFillGrad)" />`;
+
+    // 3. Draw Stroke Line path
+    let strokePath = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+        strokePath += ` L ${points[i].x} ${points[i].y}`;
+    }
+    svgHTML += `<path d="${strokePath}" fill="none" stroke="url(#chartLineGrad)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#chartGlow)" />`;
+
+    // 4. Draw X-axis Labels (Day names)
+    points.forEach(p => {
+        svgHTML += `<text x="${p.x}" y="${height - 6}" fill="var(--text-secondary)" font-size="9.5" text-anchor="middle" font-weight="600">${p.dayLabel.substring(0, 3)}</text>`;
+    });
+
+    // 5. Draw Interactive Nodes/Circles
+    points.forEach((p, idx) => {
+        svgHTML += `
+            <circle 
+                cx="${p.x}" 
+                cy="${p.y}" 
+                r="5" 
+                fill="var(--accent-cyan)" 
+                stroke="white" 
+                stroke-width="2" 
+                style="cursor: pointer; transition: transform 0.2s;"
+                onmouseover="showChartTooltip(event, '${p.dayLabel}', ${p.count}, ${maxValue})" 
+                onmouseout="hideChartTooltip()"
+            />
+        `;
+    });
+
+    svgHTML += `</svg>`;
+    
+    // Inject SVG
+    const svgWrapper = document.createElement('div');
+    svgWrapper.innerHTML = svgHTML;
+    container.appendChild(svgWrapper.firstChild);
+};
+
+window.showChartTooltip = (event, day, count, total) => {
+    const container = document.getElementById('weeklyChartContainer');
+    const tooltip = container.querySelector('.chart-tooltip');
+    if (!tooltip) return;
+
+    tooltip.innerHTML = `<strong>${day}</strong>: ${count}/${total} completed`;
+    
+    // Position tooltip relative to container boundaries
+    const rect = container.getBoundingClientRect();
+    const x = event.clientX - rect.left + 10;
+    const y = event.clientY - rect.top - 35;
+
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+    tooltip.style.opacity = '1';
+};
+
+window.hideChartTooltip = () => {
+    const container = document.getElementById('weeklyChartContainer');
+    const tooltip = container.querySelector('.chart-tooltip');
+    if (tooltip) tooltip.style.opacity = '0';
+};
+
+// ============================================================================
+// Journey Timeline Milestones Logic
+// ============================================================================
+const renderJourneyTimeline = () => {
+    const timelineEl = document.getElementById('journeyTimeline');
+    if (!timelineEl) return;
+
+    timelineEl.innerHTML = '';
+
+    // Calculate completions
+    let totalCompletions = 0;
+    habits.forEach(h => totalCompletions += h.history.length);
+
+    const milestones = [
+        { key: 'total_1', name: 'First Steps', desc: 'Completed 1 habit session', check: () => totalCompletions >= 1 },
+        { key: 'total_10', name: 'Routine Builder', desc: 'Completed 10 habit sessions', check: () => totalCompletions >= 10 },
+        { key: 'total_25', name: 'Specialist Striver', desc: 'Completed 25 habit sessions', check: () => totalCompletions >= 25 },
+        { key: 'streak_7', name: 'Consistent Warrior', desc: 'Reached a 7-day global streak', check: () => globalStreak >= 7 },
+        { key: 'total_50', name: 'Daily Champion', desc: 'Completed 50 habit sessions', check: () => totalCompletions >= 50 },
+        { key: 'streak_30', name: 'Unstoppable Legend', desc: 'Reached a 30-day global streak', check: () => globalStreak >= 30 }
+    ];
+
+    milestones.forEach(m => {
+        const unlocked = m.check();
+        const item = document.createElement('div');
+        item.className = `journey-item ${unlocked ? 'unlocked' : 'locked'}`;
+        item.innerHTML = `
+            <div class="journey-dot"></div>
+            <div class="journey-content">
+                <span class="journey-title">${m.name}</span>
+                <span class="journey-desc">${m.desc}</span>
+            </div>
+        `;
+        timelineEl.appendChild(item);
+    });
+};
+
+// ============================================================================
+// Daily Time-Boxing Schedule Logic
+// ============================================================================
+const renderTimeBoxingSchedule = () => {
+    const morningList = document.getElementById('morningSlotList');
+    const afternoonList = document.getElementById('afternoonSlotList');
+    const eveningList = document.getElementById('eveningSlotList');
+    if (!morningList || !afternoonList || !eveningList) return;
+
+    morningList.innerHTML = '';
+    afternoonList.innerHTML = '';
+    eveningList.innerHTML = '';
+
+    const today = getTodayDateString();
+    
+    // Determine active slot based on current hour
+    const currentHour = new Date().getHours();
+    let activeSlot = '';
+    if (currentHour < 12) activeSlot = 'morning';
+    else if (currentHour < 18) activeSlot = 'afternoon';
+    else activeSlot = 'evening';
+
+    // Toggle active slot header highlight
+    document.querySelectorAll('.time-slot-column').forEach(col => {
+        if (col.getAttribute('data-slot') === activeSlot) {
+            col.classList.add('active-slot');
+        } else {
+            col.classList.remove('active-slot');
+        }
+    });
+
+    const slotHabits = { morning: [], afternoon: [], evening: [] };
+
+    habits.forEach(h => {
+        const slot = h.timeSlot || 'any';
+        if (slot !== 'any' && slotHabits[slot] !== undefined) {
+            slotHabits[slot].push(h);
+        }
+    });
+
+    // Helper to render lists
+    const renderSlotList = (listEl, listHabits, slotKey) => {
+        if (listHabits.length === 0) {
+            listEl.innerHTML = `<span class="slot-empty-text">No habits scheduled</span>`;
+            return;
+        }
+
+        listHabits.forEach(h => {
+            const isCompleted = (h.lastCompleted === today);
+            const isUpNext = (slotKey === activeSlot && !isCompleted);
+
+            const item = document.createElement('div');
+            item.className = `slot-habit-item ${isCompleted ? 'completed' : ''} ${isUpNext ? 'up-next' : ''}`;
+            item.innerHTML = `
+                <span>${h.emoji}</span>
+                <span>${h.name}</span>
+            `;
+            
+            // Clicking a slot item toggles the completion
+            item.onclick = () => {
+                toggleHabit(h.id);
+            };
+
+            listEl.appendChild(item);
+        });
+    };
+
+    renderSlotList(morningList, slotHabits.morning, 'morning');
+    renderSlotList(afternoonList, slotHabits.afternoon, 'afternoon');
+    renderSlotList(eveningList, slotHabits.evening, 'evening');
 };
 
 // ============================================================================

@@ -29,6 +29,18 @@
                     <h1>Hello, Striver!</h1>
                 </div>
                 <div class="header-actions">
+                    <!-- Sound Style Toggle and Popover -->
+                    <div class="sound-popover-container" style="position: relative;">
+                        <button class="action-icon-btn" id="soundToggleBtn" title="Sound Settings" type="button">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </button>
+                        <div class="sound-popover" id="soundPopover">
+                            <div class="sound-option active" data-sound="synth">💻 Cyber Synth</div>
+                            <div class="sound-option" data-sound="zen">🧘 Zen Bowl</div>
+                            <div class="sound-option" data-sound="bird">🐦 Forest Bird</div>
+                            <div class="sound-option" data-sound="retro">👾 Retro Arcade</div>
+                        </div>
+                    </div>
                     <!-- Theme Toggle Button -->
                     <button class="action-icon-btn" id="themeToggleBtn" title="Switch Theme">
                         <i class="fa-solid fa-palette"></i>
@@ -88,6 +100,14 @@
                         </div>
                     </div>
                     
+                    <!-- Weekly SVG Performance Chart -->
+                    <div class="chart-section">
+                        <h4>Weekly Performance</h4>
+                        <div class="weekly-chart-container" id="weeklyChartContainer">
+                            <!-- Filled dynamically by JS (SVG) -->
+                        </div>
+                    </div>
+
                     <!-- GitHub style Heatmap Grid -->
                     <div class="heatmap-section">
                         <h4>30-Day Consistency Map</h4>
@@ -98,6 +118,14 @@
                     <div class="achievements-section">
                         <h4>Strive Achievements</h4>
                         <div class="achievements-grid" id="achievementsGrid">
+                            <!-- Filled dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Journey Timeline Section -->
+                    <div class="journey-section">
+                        <h4>Milestone Journey</h4>
+                        <div class="journey-timeline" id="journeyTimeline">
                             <!-- Filled dynamically by JS -->
                         </div>
                     </div>
@@ -133,6 +161,34 @@
                 <button class="filter-tab" data-filter="mind">Mind</button>
                 <button class="filter-tab" data-filter="fitness">Fitness</button>
                 <button class="filter-tab" data-filter="personal">Personal</button>
+            </div>
+
+            <!-- Collapsible Time-Boxing Schedule Grid -->
+            <div class="time-boxing-container" id="timeBoxingContainer">
+                <button class="time-boxing-header" id="timeBoxingToggleBtn" type="button">
+                    <span><i class="fa-solid fa-clock"></i> Daily Time-Boxing Schedule</span>
+                    <i class="fa-solid fa-chevron-down" id="timeBoxingChevron"></i>
+                </button>
+                <div class="time-boxing-grid" id="timeBoxingGrid" style="display: none;">
+                    <div class="time-slot-column" data-slot="morning">
+                        <h5>🌅 Morning</h5>
+                        <div class="slot-habits-list" id="morningSlotList">
+                            <!-- Filled dynamically by JS -->
+                        </div>
+                    </div>
+                    <div class="time-slot-column" data-slot="afternoon">
+                        <h5>☀️ Afternoon</h5>
+                        <div class="slot-habits-list" id="afternoonSlotList">
+                            <!-- Filled dynamically by JS -->
+                        </div>
+                    </div>
+                    <div class="time-slot-column" data-slot="evening">
+                        <h5>🌙 Evening</h5>
+                        <div class="slot-habits-list" id="eveningSlotList">
+                            <!-- Filled dynamically by JS -->
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="section-title">
@@ -217,8 +273,18 @@
                          </div>
                      </div>
 
-                    <div class="form-group">
-                        <label>Icon / Emoji</label>
+                     <div class="form-group select-group">
+                         <label for="habitTimeSlot">Schedule Time Slot</label>
+                         <select id="habitTimeSlot" class="form-select">
+                             <option value="any" selected>Any Time</option>
+                             <option value="morning">Morning (6 AM - 12 PM)</option>
+                             <option value="afternoon">Afternoon (12 PM - 6 PM)</option>
+                             <option value="evening">Evening (6 PM - 12 AM)</option>
+                         </select>
+                     </div>
+
+                     <div class="form-group">
+                         <label>Icon / Emoji</label>
                         <div class="emoji-selector" id="emojiSelector">
                             <span class="emoji-option selected" data-emoji="💻">💻</span>
                             <span class="emoji-option" data-emoji="💧">💧</span>
